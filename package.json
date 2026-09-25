@@ -1,7 +1,7 @@
 {
-  "name": "agent-tool-server-template",
+  "name": "agent-tool-server-shopgoodwill",
   "version": "0.0.0-development",
-  "description": "Thin local-first capability template for Agent Tool Platform.",
+  "description": "Read-only ShopGoodwill research capability for Agent Tool Platform.",
   "license": "MIT",
   "type": "module",
   "engines": {
@@ -16,7 +16,7 @@
     }
   },
   "bin": {
-    "agent-tool-capability-template": "dist/stdio.js"
+    "agent-tool-server-shopgoodwill": "dist/stdio.js"
   },
   "files": [
     "dist"
@@ -46,17 +46,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ashergarland/agent-tool-server-template.git"
+    "url": "git+https://github.com/ashergarland/agent-tool-server-shopgoodwill.git"
   },
-  "homepage": "https://github.com/ashergarland/agent-tool-server-template#readme",
+  "homepage": "https://github.com/ashergarland/agent-tool-server-shopgoodwill#readme",
   "bugs": {
-    "url": "https://github.com/ashergarland/agent-tool-server-template/issues"
+    "url": "https://github.com/ashergarland/agent-tool-server-shopgoodwill/issues"
   },
   "keywords": [
     "mcp",
     "agent-tools",
     "capability",
-    "template"
+    "shopgoodwill",
+    "shopping-research"
   ],
   "dependencies": {
     "@agent-tool-platform/runtime": "0.1.3",

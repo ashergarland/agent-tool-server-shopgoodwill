@@ -2,28 +2,58 @@
   "$comment": "Capability-owned routing cases. A null expectedTool means no capability tool should run.",
   "cases": [
     {
-      "id": "count-text",
-      "request": "How many words and lines are in this supplied paragraph?",
-      "expectedTool": "inspect_text",
-      "reason": "The request asks for metrics over text supplied directly."
+      "id": "discover-cameras",
+      "request": "Find active film camera listings on ShopGoodwill.",
+      "expectedTool": "search_shopgoodwill",
+      "reason": "Search is the bounded listing-discovery tool."
     },
     {
-      "id": "measure-unicode",
-      "request": "Give me the byte and character counts for this Unicode text.",
-      "expectedTool": "inspect_text",
-      "reason": "The tool distinguishes encoded bytes from characters."
+      "id": "closed-evidence",
+      "request": "Find recent closed ShopGoodwill auctions for acoustic guitars.",
+      "expectedTool": "search_shopgoodwill",
+      "reason": "Search supports bounded closed-auction evidence."
     },
     {
-      "id": "out-of-scope-summary",
-      "request": "Summarize this report and identify its main argument.",
+      "id": "condition-policy",
+      "request": "Check this ShopGoodwill item's condition, pickup terms, and seller policy.",
+      "expectedTool": "get_shopgoodwill_item",
+      "reason": "Item detail owns condition and policy fields."
+    },
+    {
+      "id": "delivered-price",
+      "request": "Estimate shipping for ShopGoodwill item 990000001 to ZIP 97201.",
+      "expectedTool": "estimate_shopgoodwill_shipping",
+      "reason": "Shipping estimation should precede a delivered-price comparison."
+    },
+    {
+      "id": "resolve-category",
+      "request": "What ShopGoodwill category ID corresponds to film cameras?",
+      "expectedTool": "list_shopgoodwill_categories",
+      "reason": "The category directory resolves names to IDs."
+    },
+    {
+      "id": "resolve-seller",
+      "request": "Resolve the Portland Goodwill seller into a ShopGoodwill seller ID.",
+      "expectedTool": "list_shopgoodwill_sellers",
+      "reason": "The seller directory resolves public identities to IDs."
+    },
+    {
+      "id": "out-of-scope-bid",
+      "request": "Place a bid on this ShopGoodwill auction.",
       "expectedTool": null,
-      "reason": "The capability measures shape and does not interpret meaning."
+      "reason": "The capability is read-only and cannot bid or alter account state."
     },
     {
-      "id": "out-of-scope-file",
-      "request": "Read C:\\notes\\report.txt and count its words.",
+      "id": "out-of-scope-image",
+      "request": "Inspect the item photos and tell me whether the lens has fungus.",
       "expectedTool": null,
-      "reason": "The capability accepts supplied text and has no filesystem access."
+      "reason": "Image interpretation belongs to a separate Vision capability."
+    },
+    {
+      "id": "out-of-scope-comparison",
+      "request": "Compare this ShopGoodwill listing against eBay and recommend a maximum bid.",
+      "expectedTool": null,
+      "reason": "Cross-market comparison and bidding advice belong to the Shopping Agent."
     }
   ]
 }

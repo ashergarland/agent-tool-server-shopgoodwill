@@ -43,7 +43,7 @@ class McpClient {
     this.stderr = '';
     this.child = spawn(process.execPath, [entrypoint], {
       cwd,
-      env: { ...process.env },
+      env: { ...process.env, SHOPGOODWILL_PROVIDER_MODE: 'fixture' },
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     });
@@ -205,11 +205,12 @@ const main = async () => {
 
     await writeFile(
       join(consumer, 'consumer.mjs'),
-      `import { capability, capabilityManifest, TextInspector } from ${JSON.stringify(
+      `import { capability, capabilityManifest, FixtureShopGoodwillProvider } from ${JSON.stringify(
         packageName,
       )};\n` +
         `if (capability.manifest !== capabilityManifest) throw new Error('exports do not compose');\n` +
-        `if (new TextInspector().inspect('one two').words !== 2) throw new Error('library export failed');\n`,
+        `const result = await new FixtureShopGoodwillProvider().search({ query: 'camera', buyNowOnly: false, pickupOnly: false, oneCentShippingOnly: false, searchDescriptions: false, status: 'active', sort: 'relevance', page: 1, limit: 1 }, new AbortController().signal);\n` +
+        `if (result.source !== 'fixture' || result.synthetic !== true) throw new Error('library export failed');\n`,
     );
     runNode(['consumer.mjs'], { cwd: consumer });
 
@@ -239,17 +240,32 @@ const main = async () => {
     const listed = await client.request('tools/list');
     const names = (listed.result?.tools ?? []).map((tool) => tool.name);
     assert(
-      JSON.stringify(names) === JSON.stringify(['inspect_text']),
+      JSON.stringify(names) ===
+        JSON.stringify([
+          'search_shopgoodwill',
+          'get_shopgoodwill_item',
+          'estimate_shopgoodwill_shipping',
+          'list_shopgoodwill_categories',
+          'list_shopgoodwill_sellers',
+        ]),
       `Packed entrypoint exposed unexpected tools: ${names.join(', ')}`,
     );
 
     const invocation = await client.request('tools/call', {
-      name: 'inspect_text',
-      arguments: { text: 'one two\nthree' },
+      name: 'search_shopgoodwill',
+      arguments: { query: 'camera', limit: 1 },
     });
-    assert(invocation.result?.isError !== true, 'inspect_text failed from the packed entrypoint');
+    assert(
+      invocation.result?.isError !== true,
+      'search_shopgoodwill failed from the packed entrypoint',
+    );
     const result = invocation.result?.structuredContent;
-    assert(result?.words === 3 && result?.lines === 2, 'inspect_text returned the wrong result');
+    assert(
+      result?.source === 'fixture' &&
+        result?.synthetic === true &&
+        result?.listings?.[0]?.synthetic === true,
+      'search_shopgoodwill returned the wrong fixture result',
+    );
 
     const exit = await client.shutdown();
     assert(exit.code === 0, `Packed entrypoint exited with code ${String(exit.code)}`);

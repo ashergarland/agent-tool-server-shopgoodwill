@@ -4,50 +4,48 @@ The canonical public declaration is [`../capability-profiles.json`](../capabilit
 It uses Agent Tool Platform deployment contract v1 at revision
 `98ec8162fb11d5c04aee9e6f7b3625a472a0180d`.
 
-## Local default
+## Local fixture
 
-The template declares only a `local-package` profile:
+`local-fixture` runs the packaged stdio executable with deterministic synthetic data:
 
-| Dimension | Value           | Consequence                                       |
-| --------- | --------------- | ------------------------------------------------- |
-| execution | `local`         | The invoking machine runs the process.            |
-| delivery  | `package`       | npm supplies the built artifact.                  |
-| access    | `local-process` | The caller owns the stdio pipe.                   |
-| workload  | `none`          | No file, mount, upload, object, or provider data. |
-| provider  | `none`          | No external provider prerequisite.                |
-| mutation  | `read-only`     | The tool changes no state.                        |
+| Dimension | Value           | Consequence                            |
+| --------- | --------------- | -------------------------------------- |
+| execution | `local`         | The invoking machine runs the process. |
+| delivery  | `package`       | npm supplies the built artifact.       |
+| access    | `local-process` | The caller owns the stdio pipe.        |
+| workload  | `none`          | No external data or provider access.   |
+| provider  | `none`          | Fixture mode makes no network request. |
+| mutation  | `read-only`     | Every tool changes no state.           |
 
-This profile needs no cloud infrastructure, HTTP listener, container, external secret, provider
-configuration, or operator deployment instance.
+This is the profile for CI, conformance, MCP wiring, and host/ChatGPT integration testing.
 
-## Add hosted or hybrid support only when real
+## Local authorized
 
-A hybrid capability adds another named profile; it does not weaken or overload the local profile.
-Copy no schema or validator from Platform. Declare the new profile with all six dimensions, then
-add only the capability/profile-owned deployment assets needed to make it true.
+`local-authorized-token` uses the same package and stdio boundary for an approved endpoint that
+requires a bearer token, and adds an external provider workload:
 
-Ownership follows the eBay deployment-contract proof:
+| Dimension | Value           | Consequence                                                     |
+| --------- | --------------- | --------------------------------------------------------------- |
+| execution | `local`         | The invoking machine runs the process.                          |
+| delivery  | `package`       | npm supplies the built artifact.                                |
+| access    | `local-process` | The caller owns the stdio pipe.                                 |
+| workload  | `provider`      | Calls one approved compatible read-only endpoint per operation. |
+| provider  | `external`      | Operator authorization and configuration are prerequisites.     |
+| mutation  | `read-only`     | The provider contract contains no mutation operation.           |
 
-| Owner/system                      | Contents                                                                                                                                                            |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public capability repository      | Supported profile, reusable mechanics, safe configuration schema, required secret names, provider prerequisites, verification surfaces                              |
-| Private deployment-instance Git   | Environment/profile selection, immutable declaration and deployed-source pins, private parameter reference, secret references, desired state, rollback expectations |
-| Provider, secret, evidence stores | Live resources, secret values, produced artifact identities, rollout results, drift, and observed evidence                                                          |
+The approval variable is a safety gate, not proof of legal authorization. Platform deployment
+contract v1 requires an external-provider profile to name a secret and scoped identity, so this
+profile declares `SHOPGOODWILL_API_TOKEN` for token-requiring endpoints. The runtime keeps the token
+optional when an independently approved endpoint does not require one. No live endpoint,
+credential value, account identifier, or operator instance belongs in this public repository.
 
-Declaration and deployed-source pins are independent. A build-from-source instance requests
-produced-digest and source-binding evidence; it must not invent a digest before the build.
+## Disabled default
 
-Provider readiness is distinct from process liveness. A hosted provider-backed profile can remain
-`read-only`. A mutating profile must explicitly declare separate enablement, authorization,
-confirmation, durable-record policy, and authoritative verification.
+Outside tests, omitted provider configuration selects `disabled`. The process remains healthy but
+provider readiness is `not_ready`, and tool calls return a normalized provider-disabled error
+without making a network request.
 
-Public examples must be synthetic and account-neutral. Never commit subscriptions, tenants,
-production resource names, live endpoints, operator contacts, credentials, secret values, or
-private desired state.
-
-Capability/profile-specific deployment assets may remain here when needed. Do not introduce a
-general Container Apps, registry, Key Vault, observability, or fleet-deployment library; shared IaC
-is a separate Platform concern.
-
-The full contract and offline validation rules are maintained in
-[Agent Tool Platform](https://github.com/ashergarland/agent-tool-platform/blob/98ec8162fb11d5c04aee9e6f7b3625a472a0180d/docs/deployment-contracts.md).
+Provider readiness is distinct from process liveness. The public profiles describe supported
+shapes; immutable deployment pins, secret references, rollback intent, and operator desired state
+belong in private operator Git, while secret values and observed deployment evidence remain in
+their provider systems.
