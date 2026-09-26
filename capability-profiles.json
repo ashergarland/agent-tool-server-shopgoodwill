@@ -2,14 +2,14 @@
   "contractVersion": 1,
   "kind": "capability-profile-declaration",
   "capability": {
-    "id": "io.github.ashergarland/agent-tool-server-template",
-    "displayName": "Thin Capability Template",
-    "repository": "https://github.com/ashergarland/agent-tool-server-template"
+    "id": "io.github.ashergarland/agent-tool-server-shopgoodwill",
+    "displayName": "ShopGoodwill Research Capability",
+    "repository": "https://github.com/ashergarland/agent-tool-server-shopgoodwill"
   },
   "profiles": [
     {
-      "id": "local-package",
-      "description": "Read-only local execution from the published package over stdio.",
+      "id": "local-fixture",
+      "description": "Read-only local stdio execution with deterministic synthetic ShopGoodwill fixtures and no network access.",
       "dimensions": {
         "execution": "local",
         "delivery": "package",
@@ -22,7 +22,7 @@
         "supportedForms": ["package"],
         "publication": {
           "kind": "package",
-          "identifier": "agent-tool-server-template"
+          "identifier": "agent-tool-server-shopgoodwill"
         },
         "entrypoint": {
           "reference": "dist/stdio.js",
@@ -31,7 +31,7 @@
         "mechanics": [
           {
             "id": "local-stdio",
-            "reference": "README.md#run-the-capability"
+            "reference": "README.md#example-mcp-configuration"
           }
         ],
         "provenance": {
@@ -41,8 +41,8 @@
       },
       "configuration": {
         "schema": {
-          "id": "urn:io.github.ashergarland:agent-tool-server-template:local-configuration:v1",
-          "capabilityId": "io.github.ashergarland/agent-tool-server-template",
+          "id": "urn:io.github.ashergarland:agent-tool-server-shopgoodwill:local-configuration:v1",
+          "capabilityId": "io.github.ashergarland/agent-tool-server-shopgoodwill",
           "path": "schemas/local-configuration.schema.json"
         },
         "bounded": true
@@ -55,7 +55,87 @@
       },
       "extensionSchemas": [],
       "verification": {
-        "surfaces": ["version", "behavior", "provenance"]
+        "surfaces": ["version", "behavior", "readiness", "provenance"]
+      }
+    },
+    {
+      "id": "local-authorized-token",
+      "description": "Read-only local stdio execution against an operator-approved compatible ShopGoodwill endpoint that requires a bearer token.",
+      "dimensions": {
+        "execution": "local",
+        "delivery": "package",
+        "access": "local-process",
+        "workload": "provider",
+        "provider": "external",
+        "mutation": "read-only"
+      },
+      "delivery": {
+        "supportedForms": ["package"],
+        "publication": {
+          "kind": "package",
+          "identifier": "agent-tool-server-shopgoodwill"
+        },
+        "entrypoint": {
+          "reference": "dist/stdio.js",
+          "interface": "stdio"
+        },
+        "mechanics": [
+          {
+            "id": "local-stdio",
+            "reference": "README.md#example-mcp-configuration"
+          }
+        ],
+        "provenance": {
+          "method": "package-metadata",
+          "reference": "package.json#repository"
+        }
+      },
+      "configuration": {
+        "schema": {
+          "id": "urn:io.github.ashergarland:agent-tool-server-shopgoodwill:local-configuration:v1",
+          "capabilityId": "io.github.ashergarland/agent-tool-server-shopgoodwill",
+          "path": "schemas/local-configuration.schema.json"
+        },
+        "bounded": true
+      },
+      "requiredSecrets": ["SHOPGOODWILL_API_TOKEN"],
+      "providerPrerequisites": [
+        {
+          "id": "approved-provider-access",
+          "description": "The operator has independently obtained authorization for automated access; the engineering approval flag does not create that authorization."
+        },
+        {
+          "id": "compatible-read-only-endpoint",
+          "description": "An approved endpoint or proxy implements the documented read-only request and response contract."
+        }
+      ],
+      "identity": {
+        "trustBoundary": "The invoking local user, the configured approved endpoint, and any operator-managed optional bearer credential.",
+        "rbac": [
+          "Read-only access to the configured approved provider endpoint; no ShopGoodwill account session or mutation scope."
+        ]
+      },
+      "workload": {
+        "interface": {
+          "kind": "provider",
+          "reference": "README.md#authorized-provider-contract"
+        },
+        "authorization": {
+          "scope": "Operator-approved public read-only listing, shipping-estimate, category, and optional seller-directory access."
+        },
+        "lifecycle": {
+          "mode": "request",
+          "freshness": "Each tool call requests only its bounded current provider response; the capability keeps no inventory cache.",
+          "cleanup": "No provider state is created and no capability data persists after the process exits."
+        },
+        "notReady": {
+          "whenAbsent": "not-ready",
+          "reason": "Authorized mode requires explicit approval and an approved compatible base URL."
+        }
+      },
+      "extensionSchemas": [],
+      "verification": {
+        "surfaces": ["identity", "version", "behavior", "readiness", "provider", "provenance"]
       }
     }
   ]

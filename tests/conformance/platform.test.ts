@@ -2,7 +2,6 @@ import { readFile } from 'node:fs/promises';
 import {
   createAgentToolApplication,
   type AgentToolApplication,
-  type PlatformConfig,
 } from '@agent-tool-platform/runtime';
 import { createSilentLogger } from '@agent-tool-platform/runtime/logging';
 import { createToolRegistry } from '@agent-tool-platform/runtime/tools';
@@ -21,16 +20,21 @@ import {
 } from '@agent-tool-platform/testkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { capability } from '../../src/capability.js';
-import { TextInspector, type CapabilityServices } from '../../src/domain/text-inspector.js';
+import type { ShopGoodwillConfig } from '../../src/config.js';
 import { capabilityManifest } from '../../src/manifest.js';
+import { FixtureShopGoodwillProvider } from '../../src/providers/fixture.js';
+import type { CapabilityServices } from '../../src/providers/provider.js';
 import { capabilityTools } from '../../src/tools/definitions.js';
 import { capabilityInstructions } from '../../src/tools/guidance.js';
 
-type TestApplication = AgentToolApplication<PlatformConfig, CapabilityServices>;
+type TestApplication = AgentToolApplication<ShopGoodwillConfig, CapabilityServices>;
 
 const apiKey = generateTestApiKey();
 const applications: TestApplication[] = [];
-const readSample = { name: 'inspect_text', input: { text: 'one two' } } as const;
+const readSample = {
+  name: 'search_shopgoodwill',
+  input: { query: 'camera', limit: 1 },
+} as const;
 
 const createApplication = async (start = true): Promise<TestApplication> => {
   const application = await createAgentToolApplication(capability, {
@@ -56,8 +60,8 @@ describe('Platform conformance', () => {
     const registry = createToolRegistry(capabilityTools);
     const registryResult = await runRegistryConformance({
       registry,
-      services: { text: new TextInspector() },
-      invalidInputSample: { name: 'inspect_text', input: { text: 42 } },
+      services: { shopGoodwill: new FixtureShopGoodwillProvider() },
+      invalidInputSample: { name: 'search_shopgoodwill', input: {} },
     });
     const routingResult = runRoutingConformance({
       registry,

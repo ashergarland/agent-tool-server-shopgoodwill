@@ -2,3 +2,4 @@ dist
 coverage
 package-lock.json
 openapi.json
+SECURITY-REVIEW.md

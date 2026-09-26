@@ -1,6 +1,6 @@
 {
-  "id": "agent-tool-server-template",
-  "repository": "https://github.com/ashergarland/agent-tool-server-template",
+  "id": "agent-tool-server-shopgoodwill",
+  "repository": "https://github.com/ashergarland/agent-tool-server-shopgoodwill",
   "serverMetadata": "server.json",
-  "categories": ["developer-tools", "utilities"]
+  "categories": ["shopping", "research"]
 }
