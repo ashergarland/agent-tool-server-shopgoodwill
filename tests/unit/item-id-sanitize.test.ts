@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { canonicalItemUrl, parseShopGoodwillItemId } from '../../src/domain/item-id.js';
-import { sanitizeSingleLine, sanitizeUntrustedText } from '../../src/domain/sanitize.js';
+import {
+  removeHtmlComments,
+  sanitizeSingleLine,
+  sanitizeUntrustedText,
+} from '../../src/domain/sanitize.js';
 
 describe('ShopGoodwill item references', () => {
   it.each([
@@ -33,6 +37,56 @@ describe('ShopGoodwill item references', () => {
 });
 
 describe('untrusted HTML sanitization', () => {
+  it.each([
+    {
+      description: 'an ordinary comment',
+      input: 'hello<!-- comment -->world',
+      expected: 'hello world',
+    },
+    {
+      description: 'multiple comments',
+      input: 'a<!-- first -->b<!-- second -->c',
+      expected: 'a b c',
+    },
+    {
+      description: 'adjacent comments',
+      input: 'a<!-- first --><!-- second -->b',
+      expected: 'a  b',
+    },
+    { description: 'an empty comment', input: '<!-- -->', expected: ' ' },
+    {
+      description: 'an incomplete opener',
+      input: 'comment-like <!- text --> remains',
+      expected: 'comment-like <!- text --> remains',
+    },
+  ])('handles $description', ({ input, expected }) => {
+    expect(removeHtmlComments(input)).toBe(expected);
+  });
+
+  it('removes an unterminated comment and the remainder of the input', () => {
+    expect(removeHtmlComments('prefix<!-- attacker-controlled remainder')).toBe('prefix ');
+    expect(sanitizeUntrustedText('prefix<!-- attacker-controlled remainder', 1_000)).toBe('prefix');
+  });
+
+  it('preserves large ordinary text', () => {
+    const input = 'ordinary text '.repeat(20_000);
+    expect(removeHtmlComments(input)).toBe(input);
+  });
+
+  it('handles repeated comment openers without a terminator', () => {
+    expect(removeHtmlComments('<!--'.repeat(20_000))).toBe(' ');
+  });
+
+  it('handles repeated comment openers followed by one terminator', () => {
+    const input = `prefix${'<!--'.repeat(20_000)}-->suffix`;
+    expect(removeHtmlComments(input)).toBe('prefix suffix');
+  });
+
+  it('removes a long completed comment body', () => {
+    const input = `before<!--${'x'.repeat(200_000)}-->after`;
+    expect(removeHtmlComments(input)).toBe('before after');
+  });
+
   it('removes active content, markup, comments, and prompt-like lines', () => {
     const result = sanitizeUntrustedText(
       `<script>steal()</script><style>.x{}</style><!-- hidden -->

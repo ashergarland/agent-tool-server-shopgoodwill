@@ -37,11 +37,30 @@ const replaceDisallowedControls = (value: string): string =>
       : character;
   }).join('');
 
+export const removeHtmlComments = (input: string): string => {
+  const output: string[] = [];
+  let cursor = 0;
+
+  while (cursor < input.length) {
+    const commentStart = input.indexOf('<!--', cursor);
+    if (commentStart === -1) {
+      output.push(input.slice(cursor));
+      break;
+    }
+
+    output.push(input.slice(cursor, commentStart), ' ');
+    const commentEnd = input.indexOf('-->', commentStart + 4);
+    if (commentEnd === -1) break;
+    cursor = commentEnd + 3;
+  }
+
+  return output.join('');
+};
+
 export const sanitizeUntrustedText = (input: unknown, maxLength: number): string | undefined => {
   if (typeof input !== 'string' || maxLength <= 0) return undefined;
 
-  const withoutActiveContent = input
-    .replace(/<!--[\s\S]*?-->/gu, ' ')
+  const withoutActiveContent = removeHtmlComments(input)
     .replace(
       /<(script|style|template|noscript|svg|iframe|object|embed)\b[^>]*>[\s\S]*?<\/\1\s*>/giu,
       ' ',
