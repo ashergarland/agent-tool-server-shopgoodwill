@@ -227,6 +227,7 @@ export class AuthorizedHttpShopGoodwillProvider implements ShopGoodwillProvider 
   private readonly fetchImplementation: typeof fetch;
   private readonly rateGate: SerializedRateGate;
   private readonly now: () => number;
+  private readonly approvedBaseUrl: URL;
 
   public constructor(
     private readonly config: ShopGoodwillProviderConfig,
@@ -235,13 +236,34 @@ export class AuthorizedHttpShopGoodwillProvider implements ShopGoodwillProvider 
     if (config.mode !== 'authorized' || config.apiBaseUrl === undefined) {
       throw new Error('AuthorizedHttpShopGoodwillProvider requires authorized configuration');
     }
+    this.approvedBaseUrl = new URL(config.apiBaseUrl);
     this.fetchImplementation = dependencies.fetch ?? globalThis.fetch;
     this.now = dependencies.now ?? Date.now;
     this.rateGate = new SerializedRateGate(config.minRequestIntervalMs, this.now);
   }
 
   private endpoint(path: string): URL {
-    return new URL(path, this.config.apiBaseUrl);
+    let resolved: URL;
+    try {
+      resolved = new URL(path, this.approvedBaseUrl);
+    } catch {
+      throw new AppError('not_ready', 'ShopGoodwill provider path is invalid', {
+        reason: 'invalid_provider_path',
+      });
+    }
+    if (resolved.origin !== this.approvedBaseUrl.origin) {
+      throw new AppError(
+        'not_ready',
+        'ShopGoodwill provider path is outside the approved provider origin',
+        { reason: 'provider_origin_mismatch' },
+      );
+    }
+    if (resolved.username !== '' || resolved.password !== '') {
+      throw new AppError('not_ready', 'ShopGoodwill provider path must not contain credentials', {
+        reason: 'invalid_provider_path',
+      });
+    }
+    return resolved;
   }
 
   private async request(
@@ -250,6 +272,7 @@ export class AuthorizedHttpShopGoodwillProvider implements ShopGoodwillProvider 
     body: Readonly<Record<string, unknown>> | undefined,
     signal: AbortSignal,
   ): Promise<unknown> {
+    const endpoint = this.endpoint(path);
     return this.rateGate.run(signal, async () => {
       const timeoutController = new AbortController();
       const timeout = setTimeout(
@@ -267,7 +290,7 @@ export class AuthorizedHttpShopGoodwillProvider implements ShopGoodwillProvider 
 
         let response: Response;
         try {
-          response = await this.fetchImplementation(this.endpoint(path), {
+          response = await this.fetchImplementation(endpoint, {
             method,
             headers,
             ...(body === undefined ? {} : { body: JSON.stringify(body) }),

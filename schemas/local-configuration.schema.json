@@ -48,8 +48,8 @@
       "minLength": 1,
       "maxLength": 256,
       "default": "Search/GetActiveLocation",
-      "description": "Verified buyer-compatible active-location route, or an operator-configured relative path for a compatible authorized proxy.",
-      "pattern": "^(?!/)(?!.*\\\\)(?!.*[?#])(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+      "description": "Verified buyer-compatible active-location route, or an operator-configured relative path within the approved provider origin. Schemes, authorities, credentials, queries, fragments, backslashes, and dot segments are not allowed.",
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.\\.?(?:/|$))[A-Za-z0-9._~!$&'()*+,;=/-]+$"
     }
   },
   "allOf": [

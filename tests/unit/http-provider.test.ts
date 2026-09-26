@@ -406,6 +406,101 @@ describe('authorized HTTP ShopGoodwill provider', () => {
     expect(all.sellers.find(({ sellerId }) => sellerId === 202)).not.toHaveProperty('canonicalUrl');
   });
 
+  it('sends a configured bearer token only to the approved seller-directory origin', async () => {
+    const mock = createFetch(() => jsonResponse([]));
+    const provider = new AuthorizedHttpShopGoodwillProvider(
+      authorizedConfig({
+        apiBaseUrl: 'https://approved.example/',
+        apiToken: 'seller-directory-test-token',
+        sellerDirectoryPath: 'Search/GetActiveLocation',
+      }),
+      { fetch: mock.fetch },
+    );
+
+    await expect(provider.listSellers({ limit: 10 }, signal)).resolves.toMatchObject({
+      sellers: [],
+    });
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0]?.url.href).toBe('https://approved.example/Search/GetActiveLocation');
+    expect(new Headers(mock.calls[0]?.init.headers).get('authorization')).toBe(
+      'Bearer seller-directory-test-token',
+    );
+  });
+
+  it('supports a tokenless seller request within the approved origin', async () => {
+    const mock = createFetch(() => jsonResponse([]));
+    const provider = new AuthorizedHttpShopGoodwillProvider(
+      authorizedConfig({
+        apiBaseUrl: 'https://approved.example/',
+        sellerDirectoryPath: 'Search/GetActiveLocation',
+      }),
+      { fetch: mock.fetch },
+    );
+
+    await expect(provider.listSellers({ limit: 10 }, signal)).resolves.toMatchObject({
+      sellers: [],
+    });
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0]?.url.origin).toBe('https://approved.example');
+    expect(new Headers(mock.calls[0]?.init.headers).has('authorization')).toBe(false);
+  });
+
+  it.each([
+    { sellerDirectoryPath: 'https://evil.example/path', description: 'absolute HTTPS' },
+    { sellerDirectoryPath: 'http://evil.example/path', description: 'absolute HTTP' },
+    { sellerDirectoryPath: '//evil.example/path', description: 'protocol-relative' },
+  ])(
+    'rejects a defense-in-depth $description seller path before authorization or fetch',
+    async ({ sellerDirectoryPath }) => {
+      let observedAuthorization: string | null | undefined;
+      const mock = createFetch(({ init }) => {
+        observedAuthorization = new Headers(init.headers).get('authorization');
+        return jsonResponse([]);
+      });
+      const provider = new AuthorizedHttpShopGoodwillProvider(
+        authorizedConfig({
+          apiBaseUrl: 'https://approved.example/',
+          apiToken: 'must-not-leave-approved-origin',
+          sellerDirectoryPath,
+        }),
+        { fetch: mock.fetch },
+      );
+
+      await expect(provider.listSellers({ limit: 10 }, signal)).rejects.toMatchObject({
+        code: 'not_ready',
+        message: 'ShopGoodwill provider path is outside the approved provider origin',
+        details: { reason: 'provider_origin_mismatch' },
+      });
+      expect(mock.calls).toHaveLength(0);
+      expect(observedAuthorization).toBeUndefined();
+    },
+  );
+
+  it('continues to reject seller-directory redirects', async () => {
+    const mock = createFetch(
+      () =>
+        new Response('', {
+          status: 302,
+          headers: { location: 'https://evil.example/path' },
+        }),
+    );
+    const provider = new AuthorizedHttpShopGoodwillProvider(
+      authorizedConfig({
+        apiBaseUrl: 'https://approved.example/',
+        apiToken: 'redirect-test-token',
+        sellerDirectoryPath: 'Search/GetActiveLocation',
+      }),
+      { fetch: mock.fetch },
+    );
+
+    await expect(provider.listSellers({ limit: 10 }, signal)).rejects.toMatchObject({
+      code: 'upstream_error',
+      details: { reason: 'redirect_rejected' },
+    });
+    expect(mock.calls).toHaveLength(1);
+    expect(mock.calls[0]?.init.redirect).toBe('error');
+  });
+
   it.each([
     [404, 'not_found'],
     [429, 'rate_limited'],

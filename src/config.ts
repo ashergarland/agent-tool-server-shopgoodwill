@@ -12,16 +12,11 @@ export const DEFAULT_SELLER_DIRECTORY_PATH = 'Search/GetActiveLocation';
 
 const providerPathSchema = z
   .string()
+  .min(1)
   .max(256)
-  .refine(
-    (value) =>
-      value.length > 0 &&
-      !value.startsWith('/') &&
-      !value.includes('\\') &&
-      !value.includes('?') &&
-      !value.includes('#') &&
-      !value.split('/').includes('..'),
-    'must be a relative path without a query, fragment, backslash, or parent segment',
+  .regex(
+    /^(?!\/)(?!.*\/\/)(?!.*(?:^|\/)\.\.?(?:\/|$))[A-Za-z0-9._~!$&'()*+,;=/-]+$/u,
+    'must be a relative provider path without a scheme, authority, credentials, query, fragment, backslash, or dot segment',
   );
 
 const approvalBoolean = z.union([z.boolean(), z.string()]).transform((value, context) => {

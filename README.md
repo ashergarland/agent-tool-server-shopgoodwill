@@ -89,20 +89,23 @@ is not forced to invent one.
 
 ## Authorized provider configuration
 
-| Variable                               | Required                      | Default                    | Bounds / meaning                                                   |
-| -------------------------------------- | ----------------------------- | -------------------------- | ------------------------------------------------------------------ |
-| `SHOPGOODWILL_PROVIDER_MODE`           | Yes for live access           | `disabled` outside tests   | `disabled`, `fixture`, or `authorized`                             |
-| `SHOPGOODWILL_API_BASE_URL`            | In `authorized` mode          | None                       | HTTPS URL; loopback HTTP is allowed only outside production        |
-| `SHOPGOODWILL_ACCESS_APPROVED`         | In `authorized` mode          | `false`                    | Strict boolean engineering gate                                    |
-| `SHOPGOODWILL_API_TOKEN`               | Only if the provider needs it | None                       | Optional bearer value, 1-4096 characters                           |
-| `SHOPGOODWILL_REQUEST_TIMEOUT_MS`      | No                            | `10000`                    | 100-60000 ms                                                       |
-| `SHOPGOODWILL_MIN_REQUEST_INTERVAL_MS` | No                            | `1000`                     | 0-60000 ms; requests are serialized and start no faster than this  |
-| `SHOPGOODWILL_MAX_RESPONSE_BYTES`      | No                            | `1000000`                  | 1024-5000000 bytes, checked from headers and while streaming       |
-| `SHOPGOODWILL_SELLER_DIRECTORY_PATH`   | No                            | `Search/GetActiveLocation` | Relative path override for an approved compatible seller directory |
+| Variable                               | Required                      | Default                    | Bounds / meaning                                                         |
+| -------------------------------------- | ----------------------------- | -------------------------- | ------------------------------------------------------------------------ |
+| `SHOPGOODWILL_PROVIDER_MODE`           | Yes for live access           | `disabled` outside tests   | `disabled`, `fixture`, or `authorized`                                   |
+| `SHOPGOODWILL_API_BASE_URL`            | In `authorized` mode          | None                       | HTTPS URL; loopback HTTP is allowed only outside production              |
+| `SHOPGOODWILL_ACCESS_APPROVED`         | In `authorized` mode          | `false`                    | Strict boolean engineering gate                                          |
+| `SHOPGOODWILL_API_TOKEN`               | Only if the provider needs it | None                       | Optional bearer value, 1-4096 characters                                 |
+| `SHOPGOODWILL_REQUEST_TIMEOUT_MS`      | No                            | `10000`                    | 100-60000 ms                                                             |
+| `SHOPGOODWILL_MIN_REQUEST_INTERVAL_MS` | No                            | `1000`                     | 0-60000 ms; requests are serialized and start no faster than this        |
+| `SHOPGOODWILL_MAX_RESPONSE_BYTES`      | No                            | `1000000`                  | 1024-5000000 bytes, checked from headers and while streaming             |
+| `SHOPGOODWILL_SELLER_DIRECTORY_PATH`   | No                            | `Search/GetActiveLocation` | Relative path within the approved provider; cannot select another origin |
 
 The base URL has no ShopGoodwill hostname default. It may identify an approved direct endpoint or
 an authorized proxy. Credentials, query strings, and fragments are rejected in the base URL.
-Redirects are rejected so credentials cannot be forwarded to another origin.
+The seller-directory override cannot contain a scheme, authority, credentials, query, fragment,
+backslash, or dot segment. Every authorized request is resolved against and confined to the single
+configured provider origin; bearer credentials are attached only after that origin check and are
+never forwarded across origins. Redirects remain rejected.
 
 ## Authorized provider contract
 
@@ -173,6 +176,7 @@ The authorized adapter:
 
 - propagates caller aborts and enforces a bounded request timeout;
 - serializes upstream requests and enforces a configurable minimum start interval;
+- confines every request and optional bearer credential to the configured approved provider origin;
 - rejects redirects;
 - requires JSON content types and handles JSON-encoded shipping HTML;
 - enforces response limits from `Content-Length` and while streaming;

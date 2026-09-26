@@ -80,6 +80,29 @@ describe('ShopGoodwill provider configuration', () => {
     expect(createShopGoodwillProvider(config).mode).toBe('authorized');
   });
 
+  it.each([
+    { sellerDirectoryPath: 'https://evil.example/path', description: 'absolute HTTPS URL' },
+    { sellerDirectoryPath: 'http://evil.example/path', description: 'absolute HTTP URL' },
+    { sellerDirectoryPath: '//evil.example/path', description: 'protocol-relative URL' },
+    {
+      sellerDirectoryPath: 'https://user:password@evil.example/path',
+      description: 'URL credentials',
+    },
+    {
+      sellerDirectoryPath: 'user:password@evil.example/path',
+      description: 'credential-like authority',
+    },
+  ])('rejects a seller-directory $description', ({ sellerDirectoryPath }) => {
+    expect(() =>
+      load({
+        SHOPGOODWILL_PROVIDER_MODE: 'authorized',
+        SHOPGOODWILL_API_BASE_URL: 'https://approved.example/',
+        SHOPGOODWILL_ACCESS_APPROVED: 'true',
+        SHOPGOODWILL_SELLER_DIRECTORY_PATH: sellerDirectoryPath,
+      }),
+    ).toThrow(/must be a relative provider path/u);
+  });
+
   it('rejects unsafe URLs, paths, booleans, and out-of-range limits', () => {
     const authorized = {
       SHOPGOODWILL_PROVIDER_MODE: 'authorized',
@@ -103,7 +126,7 @@ describe('ShopGoodwill provider configuration', () => {
         SHOPGOODWILL_API_BASE_URL: 'https://provider.example',
         SHOPGOODWILL_SELLER_DIRECTORY_PATH: '../sellers',
       }),
-    ).toThrow(/relative path/u);
+    ).toThrow(/relative provider path/u);
     expect(() => load({ SHOPGOODWILL_ACCESS_APPROVED: 'yes' })).toThrow(
       /Invalid capability environment configuration/u,
     );
